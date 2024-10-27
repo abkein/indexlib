@@ -23,13 +23,7 @@ from abc import abstractmethod
 from typing import Literal, Union, Generator, Any
 
 import argcomplete
-
 from marshmallow import Schema, fields, post_load
-
-
-def warn_warns():
-    warnings.warn("""Indexlib may show warnings like this. These warnings are OK, nothing wrong will happen.
-              If something goes wrong it raises an Exception. On any exception database file is leaved untouched (unless Exception happens in commit() function)""")
 
 
 def is_subpath_to(path: Path, to: Path) -> bool:
@@ -103,9 +97,6 @@ class CategorySchema(Schema):
 
     @post_load
     def make_object(self, data: dict[str, Any], *args, **kwargs):
-        print("==============Category==============")
-        print(data)
-        print("====================================")
         return Category(**data)
 
 
@@ -182,9 +173,6 @@ class FileEntitySchema(Schema):
 
     @post_load
     def make_object(self, data: dict[str, Any], *args, **kwargs):
-        print("================File================")
-        print(data)
-        print("====================================")
         _p = self.context.get("parent")
         if not isinstance(_p, (DirectoryEntity, Index)):
             raise RuntimeError(f"Provided parent object is invalid. Type: {type(_p)}")
@@ -286,9 +274,6 @@ class DirectoryEntitySchema(Schema):
 
     @post_load
     def make_object(self, data: dict[str, Any], *args, **kwargs):
-        print("==============Directory=============")
-        print(data)
-        print("====================================")
         _p = self.context.get("parent")
         if not isinstance(_p, (DirectoryEntity, Index)):
             raise RuntimeError(f"Provided parent object is invalid. Type: {type(_p)}")
@@ -520,13 +505,12 @@ class Index(DirectoryEntity):
             json.dump(IndexSchema().dump(self), fp, indent=4)
 
     def __init__(self, cwd: Path = Path.cwd()) -> None:
-        warn_warns()
         super().__init__(cwd, -1, self, "Root")
         self.__dbfile = cwd / _default_filename
         if self.__dbfile.exists():
             return self.__from_db()
 
-        timezone_str = os.environ.get('TZ', 'localtime')
+        timezone_str = os.environ.get('TZ', 'UTC')
         self.created = datetime.now(ZoneInfo(timezone_str))
 
         _ = Category('root', "Root folder category")
@@ -610,9 +594,6 @@ class IndexSchema(Schema):
 
     @post_load
     def make_object(self, data: dict[str, Any], **kwargs):
-        print("================Root================")
-        print(data)
-        print("====================================")
         instance = Index.__new__(Index)
         instance.path = data["path"]
         instance.category = -1

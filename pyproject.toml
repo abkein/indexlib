@@ -26,5 +26,5 @@ dependencies = ['marshmallow', 'argcomplete', 'tzdata']
 index = "indexlib.index:main"
 
 [project.urls]
-"Homepage" = "https://github.com/Architect0rr/MDDPN"
-"Bug Tracker" = "https://github.com/Architect0rr/MDDPN/issues"
+"Homepage" = "https://github.com/abkein/indexlib"
+"Bug Tracker" = "https://github.com/abkein/indexlib/issues"

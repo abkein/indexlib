@@ -20,7 +20,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Chemistry",
 ]
-dependencies = ['typing_extensions', 'toml', 'marshmallow', 'argcomplete', 'tzdata']
+dependencies = ['marshmallow', 'argcomplete', 'tzdata']
 
 [project.scripts]
 index = "indexlib.index:main"

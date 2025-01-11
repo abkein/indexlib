@@ -15,6 +15,7 @@ import sys
 import json
 import argparse
 import warnings
+from time import time
 from enum import Enum
 from pathlib import Path
 from datetime import datetime
@@ -24,6 +25,8 @@ from typing import Literal, Union, Generator, Any
 
 import argcomplete
 from marshmallow import Schema, fields, post_load
+
+from .compress import copy_and_compress_folder_lzma
 
 
 def is_subpath_to(path: Path, to: Path) -> bool:
@@ -495,10 +498,16 @@ class Index(DirectoryEntity):
             idx = IndexSchema(context={"parent": self}).load(json.load(fp))
             if not isinstance(idx, Index):
                 raise RuntimeError("Invalid index, seems corrupted")
+            # setting constant values
+            self.category = -1
+            self.info = "Root"
+            self.parent = self
+
+            # copying
             self.created = idx.created
+            self.path = idx.path
             self._categories = idx._categories
             self.childs = idx.childs
-            self.parent = self
 
     def commit(self):
         with self.__dbfile.open('w') as fp:
@@ -508,14 +517,27 @@ class Index(DirectoryEntity):
         super().__init__(cwd, -1, self, "Root")
         self.__dbfile = cwd / _default_filename
         if self.__dbfile.exists():
-            return self.__from_db()
+            self.__from_db()
+        else:
+            timezone_str = os.environ.get('TZ', 'UTC')
+            self.created = datetime.now(ZoneInfo(timezone_str))
 
-        timezone_str = os.environ.get('TZ', 'UTC')
-        self.created = datetime.now(ZoneInfo(timezone_str))
+            _ = Category('root', "Root folder category")
+            self._categories = [Category('default', "Default category")]
+            self.register(self.__dbfile, "default", False, "Index database file")
 
-        _ = Category('root', "Root folder category")
-        self._categories = [Category('default', "Default category")]
-        self.register(self.__dbfile, "default", False, "Index database file")
+        backup_folder_str = os.environ.get("INDEX_BACKUP_FOLDER")
+        backup_maxsize_str = os.environ.get("INDEX_BACKUP_MAXSIZE_BYTES")
+        backup_maxsize: int = 0
+        if backup_maxsize_str is not None:
+            try:
+                backup_maxsize = int(backup_maxsize_str)
+            except Exception:
+                backup_maxsize = 0
+
+        dest_fldr = Path("/scratch/perevoshchikyy/backups/" if backup_folder_str is None else backup_folder_str)
+        dest_fldr = dest_fldr / f"{int(time())}_{self.path.as_posix()}"
+        copy_and_compress_folder_lzma(self.path, dest_fldr, backup_maxsize)
 
     def get_root(self):
         return self

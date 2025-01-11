@@ -536,7 +536,7 @@ class Index(DirectoryEntity):
                 backup_maxsize = 0
 
         dest_fldr = Path("/scratch/perevoshchikyy/backups/" if backup_folder_str is None else backup_folder_str)
-        dest_fldr = dest_fldr / f"{int(time())}_{self.path.as_posix()}"
+        dest_fldr = dest_fldr / f"{int(time())}_{self.path.name}"
         copy_and_compress_folder_lzma(self.path, dest_fldr, backup_maxsize)
 
     def get_root(self):

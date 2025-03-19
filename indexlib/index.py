@@ -704,42 +704,45 @@ def main() -> int:
     index = Index()
 
     t = True
-    if args.command == 'register':
-        if args.kind == 'category':
-            index.register_category(args.name, args.info)
-        else:
+    match args.command:
+        case 'register':
             _pth = Path(args.path).resolve()
-            if args.kind == "directory" or args.kind == "dir":
-                index.register(_pth, args.category, True, args.info)
-            elif args.kind == "file":
-                index.register(_pth, args.category, False, args.info)
-            elif args.kind == "path":
-                index.register(_pth, args.category, args.type != "file", args.info)
-            else:
-                raise ValueError("Unknown kind to register")
-    elif args.command == "unregister":
-        if args.kind == "category":
-            index.unregister_category(args.name, args.wm, args.nr)
-        elif args.kind == "path":
-            index.unregister(Path(args.path).resolve(), args.recursuve)
-        else:
-            raise ValueError("Unknown kind to register")
-    elif args.command == "delete":
-        if args.kind == 'category':
-            index.delete_category(args.name, args.unregister, args.clear, args.nr)
-        elif args.kind == "path":
-            _pth = Path(args.path).resolve()
-            index.delete(_pth, args.unregister, args.nr)
-        elif args.kind == "registered":
-            index.delete_specific(RE.REGISTERED, args.unregister)
-        elif args.kind == "unregistered":
-            index.delete_specific(RE.UNREGISTERED_DEEP if args.deep else RE.UNREGISTERED)
-        elif args.kind == "all":
-            index.delete_specific(RE.ALL)
-        else:
-            raise ValueError("Unknown kind to register")
-    else:
-        t = False
+            match args.kind:
+                case 'category':
+                    index.register_category(args.name, args.info)
+                case "directory" | "dir":
+                    index.register(_pth, args.category, True, args.info)
+                case "file":
+                    index.register(_pth, args.category, False, args.info)
+                case "path":
+                    index.register(_pth, args.category, args.type != "file", args.info)
+                case _:
+                    raise ValueError("Unknown kind to register")
+        case "unregister":
+            match args.kind:
+                case "category":
+                    index.unregister_category(args.name, args.wm, args.nr)
+                case "path":
+                    index.unregister(Path(args.path).resolve(), args.recursuve)
+                case _:
+                    raise ValueError("Unknown kind to register")
+        case "delete":
+            match args.kind:
+                case 'category':
+                    index.delete_category(args.name, args.unregister, args.clear, args.nr)
+                case "path":
+                    _pth = Path(args.path).resolve()
+                    index.delete(_pth, args.unregister, args.nr)
+                case "registered":
+                    index.delete_specific(RE.REGISTERED, args.unregister)
+                case "unregistered":
+                    index.delete_specific(RE.UNREGISTERED_DEEP if args.deep else RE.UNREGISTERED)
+                case "all":
+                    index.delete_specific(RE.ALL)
+                case _:
+                    raise ValueError("Unknown kind to register")
+        case _:
+            t = False
 
     if t:
         index.commit()

@@ -21,7 +21,7 @@ from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from abc import abstractmethod
-from typing import Literal, Union, Generator, Any
+from typing import Literal, Mapping, Union, Generator, Any
 
 import argcomplete
 from marshmallow import Schema, fields, post_load
@@ -210,7 +210,7 @@ def rm_contents(folder: Path) -> None:
 
 
 class PolyField(fields.Field):
-    def _deserialize(self, value: dict[str, Any], attr: str | None, data: dict[str, Any] | None, **kwargs):
+    def _deserialize(self, value: dict[str, Any], attr: str | None, data: Mapping[str, Any] | None, **kwargs):
         type_ = value.pop('type')
 
         schema = self._get_schema(type_=type_)
@@ -250,7 +250,6 @@ class PolyField(fields.Field):
             raise ValueError(f"Unknown type: {type(obj)}")
 
     def _make_schema_instance(self, schema_class: type[FileEntitySchema] | type[DirectoryEntitySchema]) -> DirectoryEntitySchema | FileEntitySchema:
-        parent = self.parent
         root = self.root
 
         # Get attributes from the parent or root schema
@@ -524,7 +523,7 @@ class Index(DirectoryEntity):
 
             _ = Category('root', "Root folder category")
             self._categories = [Category('default', "Default category")]
-            self.register(self.__dbfile, "default", False, "Index database file")
+            self.register_child(self.__dbfile, "default", False, "Index database file")
 
         backup_folder_str = os.environ.get("INDEX_BACKUP_FOLDER")
         backup_maxsize_str = os.environ.get("INDEX_BACKUP_MAXSIZE_BYTES")
@@ -578,7 +577,7 @@ class Index(DirectoryEntity):
 
         self._categories.remove(category)
 
-    def register(self, path: Path, _category: Union[str, int], is_directory: Union[bool, None] = None, info: Union[str, None] = None) -> None:
+    def register_child(self, path: Path, _category: Union[str, int], is_directory: Union[bool, None] = None, info: Union[str, None] = None) -> None:
         found, idx, _ = self.find_category(_category)
         if not found:
             raise RuntimeError(f"Category '{_category}' does not exists")
@@ -645,18 +644,18 @@ def main() -> int:
     parser_register_category.add_argument("name", action="store", type=str, help="Category name")
     parser_register_category.add_argument("--info", "-i", action="store", type=str, help="Category info", default=None)
 
-    parser_register_path = subs_register.add_parser("path", help=f"Register a path")
+    parser_register_path = subs_register.add_parser("path", help="Register a path")
     parser_register_path.add_argument("--type", "-t", choices=["directory", "file"], type=str, help="Path type")
     parser_register_path.add_argument("path", action="store", type=str, help="Path to register")
     parser_register_path.add_argument("--info", "-i", action="store", type=str, help="Path info", default=None)
     parser_register_path.add_argument("--category", "-c", action="store", type=str, help="Path category", default="default")
 
-    parser_register_file = subs_register.add_parser("file", help=f"Register a file")
+    parser_register_file = subs_register.add_parser("file", help="Register a file")
     parser_register_file.add_argument("path", action="store", type=str, help="File to register")
     parser_register_file.add_argument("--info", "-i", action="store", type=str, help="File info", default=None)
     parser_register_file.add_argument("--category", "-c", action="store", type=str, help="File category", default="default")
 
-    parser_register_directory = subs_register.add_parser("directory", aliases=["dir", "folder", "fldr"], help=f"Register a directory")
+    parser_register_directory = subs_register.add_parser("directory", aliases=["dir", "folder", "fldr"], help="Register a directory")
     parser_register_directory.add_argument("path", action="store", type=str, help="Directory to register")
     parser_register_directory.add_argument("--info", "-i", action="store", type=str, help="Directory info", default=None)
     parser_register_directory.add_argument("--category", "-c", action="store", type=str, help="Directory category", default="default")
@@ -670,7 +669,7 @@ def main() -> int:
     parser_unregister_category.add_argument("--with-members", "-wm", action="store_true", help="Unregister category members", dest="wm")
     parser_unregister_category.add_argument("--non-recursive", "-nr", action="store_false", help="Unregister only members (without its childs)", dest="nr")
 
-    parser_unregister_path = subs_unregister.add_parser("path", help=f"Unregister a path")
+    parser_unregister_path = subs_unregister.add_parser("path", help="Unregister a path")
     parser_unregister_path.add_argument("--non-recursive", "-nr", action="store_false", help="Unregister only this forlder (without its childs)", dest="nr")
     parser_unregister_path.add_argument("path", action="store", type=str, help="Path to unregister")
 
@@ -684,7 +683,7 @@ def main() -> int:
     parser_delete_category.add_argument("--unregister", "-u", action="store_true", help="Unregister its members")
     parser_delete_category.add_argument("--non-recursive", "-nr", action="store_false", help="Unregister only this forlder (without its childs)", dest="nr")
 
-    parser_delete_path = subs_delete.add_parser("path", help=f"Deletes a path, not unregisters it. Actually does 'rm -rf'")
+    parser_delete_path = subs_delete.add_parser("path", help="Deletes a path, not unregisters it. Actually does 'rm -rf'")
     parser_delete_path.add_argument("path", action="store", type=str, help="Path to delete")
     parser_delete_path.add_argument("--unregister", "-u", action="store_true", help="Do unregsiter")
     parser_delete_path.add_argument("--non-recursive", "-nr", action="store_false", help="Unregister only this forlder (without its childs)", dest="nr")
@@ -705,17 +704,17 @@ def main() -> int:
 
     t = True
     match args.command:
-        case 'register':
+        case "register":
             _pth = Path(args.path).resolve()
             match args.kind:
-                case 'category':
+                case "category":
                     index.register_category(args.name, args.info)
                 case "directory" | "dir":
-                    index.register(_pth, args.category, True, args.info)
+                    index.register_child(_pth, args.category, True, args.info)
                 case "file":
-                    index.register(_pth, args.category, False, args.info)
+                    index.register_child(_pth, args.category, False, args.info)
                 case "path":
-                    index.register(_pth, args.category, args.type != "file", args.info)
+                    index.register_child(_pth, args.category, args.type != "file", args.info)
                 case _:
                     raise ValueError("Unknown kind to register")
         case "unregister":
@@ -728,7 +727,7 @@ def main() -> int:
                     raise ValueError("Unknown kind to register")
         case "delete":
             match args.kind:
-                case 'category':
+                case "category":
                     index.delete_category(args.name, args.unregister, args.clear, args.nr)
                 case "path":
                     _pth = Path(args.path).resolve()

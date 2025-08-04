@@ -6,8 +6,6 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
-# Last modified: 25-10-2024 04:05:43
-
 from __future__ import annotations
 
 import os
@@ -334,6 +332,14 @@ class DirectoryEntity(PathEntityProtocol):
             child.delete_self()
         if unregister:
             self.unregister_all()
+
+    # def __delete_registered(self, unregister: bool = False) -> None:
+    #     for child in self.childs:
+    #         if child.path in ignore_list:
+    #             continue
+    #         child.delete_self()
+    #     if unregister:
+    #         self.unregister_all()
 
     def __delete_unregistered(self, deep: bool) -> None:
         cont = list(self.path.iterdir())

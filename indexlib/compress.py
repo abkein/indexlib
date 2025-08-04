@@ -11,6 +11,19 @@ import tarfile
 from pathlib import Path
 
 
+def copy_file(src: Path, dest: Path, max_size_bytes: int) -> None:
+    try:
+        if max_size_bytes == 0:
+            shutil.copy2(src, dest)
+        else:
+            if src.stat().st_size <= max_size_bytes:
+                shutil.copy2(src, dest)
+            else:
+                print(f"Skipping file (size exceeds {max_size_bytes}B): {src.as_posix()}")
+    except OSError as e:
+        print(f"Error copying file {src.as_posix()}: {e}")
+
+
 def copy_items_iterative(src_path: Path, dest_path: Path, max_size_bytes: int) -> None:
     stack = [(src_path, dest_path)]
     while stack:
@@ -21,16 +34,7 @@ def copy_items_iterative(src_path: Path, dest_path: Path, max_size_bytes: int) -
                 dest_item.mkdir(parents=True, exist_ok=True)
                 stack.append((item, dest_item))
             elif item.is_file():
-                try:
-                    if max_size_bytes == 0:
-                        shutil.copy2(item, dest_item)
-                    else:
-                        if item.stat().st_size <= max_size_bytes:
-                            shutil.copy2(item, dest_item)
-                        else:
-                            print(f"Skipping file (size exceeds {max_size_bytes}B): {item}")
-                except OSError as e:
-                    print(f"Error copying file {item}: {e}")
+                copy_file(item, dest_item, max_size_bytes)
 
 
 def copy_and_compress_folder_lzma(src_folder: Path, dest_folder: Path, max_size_bytes: int, delete_uncompressed: bool = True) -> Path:
